@@ -4,69 +4,94 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public float Speed;
+    private float Speed;
+    public float NormalSpeed;
     public float JumpForce;
     private float moveInput;
 
-    private MoveState CurrentMoveState = MoveState.Idle;
-    private bool facingRight = true;
+    private bool FacingRight = true;
+    public float CheckRadius;
+    public LayerMask Ground;
+    public bool OnGround;
 
+    public Transform GroundCheck;
     private Rigidbody2D PlayerRigitbody;
     private Animator PlayerAnimator;
 
     private void Start()
     {
+        Speed = 0f;
         PlayerAnimator = GetComponent<Animator>();
         PlayerRigitbody = GetComponent<Rigidbody2D>();
     }
 
-    public void Run()
+    void CheckingGround()
     {
-        moveInput = Input.GetAxis("Horizontal");
-        PlayerRigitbody.velocity = new Vector2(moveInput * Speed, PlayerRigitbody.velocity.y);
-
-        if (!facingRight && moveInput > 0) Flip();
-        else if (facingRight && moveInput < 0) Flip();
-
-        if (moveInput == 0) PlayerAnimator.SetBool("IsRunning", false);
-        else PlayerAnimator.SetBool("IsRunning", true);
+        OnGround = Physics2D.OverlapCircle(GroundCheck.position, CheckRadius, Ground);
     }
-    public void Jump()
+
+
+    public void RightMove()
     {
-        if (CurrentMoveState != MoveState.Jump )
+        if (Speed <= 0f) 
         {
-            PlayerRigitbody.velocity = (Vector3.up * JumpForce);
-            CurrentMoveState = MoveState.Jump;
-            PlayerAnimator.SetBool("IsJumping", true);
+            Speed = NormalSpeed;
+            transform.eulerAngles = new Vector3
+            {
+                x = transform.localScale.x,
+                y = 0,
+                z = transform.localScale.z
+            };
+        }
+
+
+    }
+    public void LeftMove()
+    {
+        if (Speed >= 0f) 
+        {
+            Speed = -NormalSpeed;
+            transform.eulerAngles = new Vector3
+            {
+                x = transform.localScale.x,
+                y = 180,
+                z = transform.localScale.z
+            };
+        }
+ 
+
+    }
+    public void OnButtonUp() 
+    {
+        Speed = 0f;
+        FacingRight = !FacingRight;
+        PlayerAnimator.SetBool("IsRunning", false);
+    }
+
+    private void Run()
+    {
+        PlayerRigitbody.velocity = new Vector2(Speed, PlayerRigitbody.velocity.y);
+        if (OnGround)
+        {
+            if (Speed != 0f) PlayerAnimator.SetBool("IsRunning", true);
+        }
+        else
+        {
+            PlayerAnimator.SetBool("IsRunning", false);
             PlayerAnimator.SetTrigger("IsStartJump");
         }
     }
-
-    private void Update()
+    public void Jump()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (OnGround)
         {
-            Jump();
-            return;
-        }
-        if (CurrentMoveState == MoveState.Jump)
-        {
-           
-            if (PlayerRigitbody.velocity == Vector2.zero)
-            {
-                PlayerAnimator.SetBool("IsJumping", false);
-                CurrentMoveState = MoveState.Idle;
-            }
-        }
-        else if (CurrentMoveState == MoveState.Run)
-        {
-            Run();
+            PlayerRigitbody.velocity = (Vector3.up * JumpForce);
+            PlayerAnimator.SetTrigger("IsStartJump");
         }
     }
-
     private void Flip()
     {
-        facingRight = !facingRight;
+        FacingRight = !FacingRight;
         transform.localScale = new Vector3
         {
             x = transform.localScale.x * -1,
@@ -74,10 +99,20 @@ public class PlayerController : MonoBehaviour
             z = transform.localScale.z
         };
     }
-    enum MoveState
+    private void Update()
     {
-        Idle,
-        Run,
-        Jump
+        CheckingGround();
+
+        Run();
+        if (OnGround)
+        {
+            PlayerAnimator.SetBool("IsJumping", false);
+
+        }
+        else
+        {
+            PlayerAnimator.SetBool("IsJumping", true);
+        }
     }
+
 }
