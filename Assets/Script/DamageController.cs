@@ -11,6 +11,8 @@ public class DamageController : MonoBehaviour
         if (others.tag == "Player")
         {
             others.transform.position = respawn.transform.position;
+            others.GetComponent<PlayerController>().Health -= 1;
+            others.GetComponent<PlayerController>().HealthBar.SetHealth(others.GetComponent<PlayerController>().Health, others.GetComponent<PlayerController>().MaxHealth);
         }
     }
 }

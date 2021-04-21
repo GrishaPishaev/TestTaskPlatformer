@@ -1,15 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
     private float Speed;
     public float NormalSpeed;
     public float JumpForce;
-    private float moveInput;
 
-    private bool FacingRight = true;
+    public int MaxHealth;
+    public int Health;
+    public HealthBarBehaviorForPlayer HealthBar;
+
     public float CheckRadius;
     public LayerMask Ground;
     public bool OnGround;
@@ -18,11 +21,20 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D PlayerRigitbody;
     private Animator PlayerAnimator;
 
+    private float TimeBtwAttack;
+    public float startTimeBtwAttack;
+
+    public Transform AttackPos;
+    public LayerMask Enemy;
+    public float AttackRange;
+    public int Damage;
+
     private void Start()
     {
         Speed = 0f;
         PlayerAnimator = GetComponent<Animator>();
         PlayerRigitbody = GetComponent<Rigidbody2D>();
+        HealthBar.SetHealth(Health, MaxHealth);
     }
 
     void CheckingGround()
@@ -30,6 +42,21 @@ public class PlayerController : MonoBehaviour
         OnGround = Physics2D.OverlapCircle(GroundCheck.position, CheckRadius, Ground);
     }
 
+    public void TakeDamage(int damage)
+    {
+        if (Speed <= 0f)
+        {
+            Speed = NormalSpeed;
+        }
+        else if (Speed >= 0f)
+        {
+            Speed = -NormalSpeed;
+        }
+        PlayerRigitbody.velocity = new Vector2(Speed, PlayerRigitbody.velocity.y);
+        Jump();
+        Health -= damage;
+        HealthBar.SetHealth(Health, MaxHealth);
+    }
 
     public void RightMove()
     {
@@ -64,7 +91,6 @@ public class PlayerController : MonoBehaviour
     public void OnButtonUp() 
     {
         Speed = 0f;
-        FacingRight = !FacingRight;
         PlayerAnimator.SetBool("IsRunning", false);
     }
 
@@ -78,7 +104,7 @@ public class PlayerController : MonoBehaviour
         else
         {
             PlayerAnimator.SetBool("IsRunning", false);
-            PlayerAnimator.SetTrigger("IsStartJump");
+            PlayerAnimator.SetBool("IsJumping", true);
         }
     }
     public void Jump()
@@ -86,32 +112,66 @@ public class PlayerController : MonoBehaviour
         if (OnGround)
         {
             PlayerRigitbody.velocity = (Vector3.up * JumpForce);
-            PlayerAnimator.SetTrigger("IsStartJump");
+            PlayerAnimator.SetBool("IsJumping", true);
         }
     }
-    private void Flip()
+    public void OnAttack()
     {
-        FacingRight = !FacingRight;
-        transform.localScale = new Vector3
+        if (TimeBtwAttack<=0)
         {
-            x = transform.localScale.x * -1,
-            y = transform.localScale.y,
-            z = transform.localScale.z
-        };
+            PlayerAnimator.SetBool("IsAttacking", true);
+            PlayerAnimator.SetTrigger("Attacking");
+            PlayerAnimator.SetBool("IsJumping", false);
+
+            PlayerAnimator.SetBool("IsRunning", false);
+            Collider2D[] enemies = Physics2D.OverlapCircleAll(AttackPos.position, AttackRange, Enemy);
+            for (int i = 0; i < enemies.Length; i++)
+            {
+                enemies[i].GetComponent<EnemyController>().TakeDamage(Damage);
+            }
+            TimeBtwAttack = startTimeBtwAttack;
+        } 
     }
+
+    private void Death()
+    {
+        if (Health<=0)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(AttackPos.position, AttackRange);
+    }
+
     private void Update()
     {
         CheckingGround();
 
         Run();
+
+        Death();
+
+        if (TimeBtwAttack >= 0)
+        {
+            TimeBtwAttack -= Time.deltaTime;
+            PlayerAnimator.SetBool("IsAttacking", false);
+            return;
+        }
+
         if (OnGround)
         {
             PlayerAnimator.SetBool("IsJumping", false);
-
         }
         else
         {
-            PlayerAnimator.SetBool("IsJumping", true);
+            if (PlayerAnimator.GetBool("IsAttacking") == false)
+            {
+                PlayerAnimator.SetBool("IsJumping", true);
+            }
         }
     }
 
