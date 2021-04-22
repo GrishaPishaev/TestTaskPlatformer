@@ -8,7 +8,8 @@ public class EnemyController : MonoBehaviour
     public int MaxHealth;
     public int CurrentHealth;
     public HealthBarBehaviorForEnemy HealthBar;
-
+    private float TimeStop;
+    public float startStop;
 
     public int Damage;
     public int ScoreOfEnemy;
@@ -25,6 +26,7 @@ public class EnemyController : MonoBehaviour
     {
         RockAnimator.SetBool("IsTakeDamage", true);
         CurrentHealth -= damage;
+        TimeStop = startStop;
     }
 
     public void OnTriggerEnter2D(Collider2D others)
@@ -37,7 +39,9 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
-        RockAnimator.SetBool("IsTakeDamage", false);
+        if (TimeStop >= 0) TimeStop -= Time.deltaTime;
+        else RockAnimator.SetBool("IsTakeDamage", false);
+
         HealthBar.SetHealth(CurrentHealth, MaxHealth);
         if (CurrentHealth <= 0)
         {

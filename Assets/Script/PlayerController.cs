@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     public int MaxHealth;
     public int Health;
     public HealthBarBehaviorForPlayer HealthBar;
+    public EndGameUIController EndGameMenuUI;
 
     public float CheckRadius;
     public LayerMask Ground;
@@ -29,8 +30,17 @@ public class PlayerController : MonoBehaviour
     public float AttackRange;
     public int Damage;
 
+    void OnTriggerEnter2D(Collider2D others)
+    {
+        if (others.tag == "Finish")
+        {
+            EndGameMenuUI.ShowEndgGameMenu("Ого! Вы нашли трудовой договор. Это победа!");
+        }
+    }
+
     private void Start()
     {
+        Time.timeScale = 1f;
         Speed = 0f;
         PlayerAnimator = GetComponent<Animator>();
         PlayerRigitbody = GetComponent<Rigidbody2D>();
@@ -137,7 +147,7 @@ public class PlayerController : MonoBehaviour
     {
         if (Health<=0)
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            EndGameMenuUI.ShowEndgGameMenu("Вы погибли!");
         }
     }
 
